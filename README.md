@@ -12,6 +12,7 @@ The course notebooks are kept for reference, but most of this repo is a **rewrit
 | 2 — Regression | Fuel efficiency (extra exercise) | [`02-car-fuel-efficiency.ipynb`](notebooks/02-car-fuel-efficiency.ipynb) | RMSE **1.591** mpg |
 | 3 — Classification | Telco customer churn | [`03-churn-telco-customer-prediction-sklearn.ipynb`](notebooks/03-churn-telco-customer-prediction-sklearn.ipynb) | Accuracy **0.812**, ROC-AUC **0.858** |
 | 3 — Classification | Credit-card default | [`03-credit-card-default-prediction.ipynb`](notebooks/03-credit-card-default-prediction.ipynb) | Accuracy **0.818**, ROC-AUC **0.770** |
+| 4 — Evaluation | Lead scoring (homework) | [`04-lead-scoring-evaluation.ipynb`](notebooks/04-lead-scoring-evaluation.ipynb) | Validation AUC **0.732**, 5-fold std **0.007** |
 
 The module 3 churn notebook is written as a reusable **template**: change the
 `DATA_PATH`, `TARGET`, `POSITIVE_LABEL`, and the numeric/categorical column lists,
@@ -28,12 +29,14 @@ notebooks/
   03-churn-telco-customer-prediction.ipynb         # original course notebook
   03-churn-telco-customer-prediction-sklearn.ipynb # churn, rewritten as a reusable template
   03-credit-card-default-prediction.ipynb          # template applied to credit-card default
+  04-lead-scoring-evaluation.ipynb                 # module 4 homework: evaluation metrics
 
 data/
   car_price.csv                # module 2: car prices
   car_fuel_efficiency.csv      # module 2: fuel efficiency exercise
   telco.csv                    # module 3: telecom churn
   credit_card_default.csv      # module 3: UCI credit-card default
+  course_lead_scoring_2026.csv # module 4: lead scoring (homework)
 ```
 
 Each `NN-*` prefix corresponds to a module/chapter number in the course.
@@ -94,15 +97,22 @@ misleading. CV AUC is 0.768 ± 0.011.
 Both classification notebooks include a section on moving the decision threshold
 and on choosing metrics by the real cost of false positives vs false negatives.
 
+**Lead scoring (module 4 homework).** Validation ROC-AUC 0.732; the 5-fold CV
+standard deviation is 0.007. This notebook is about evaluation rather than a new
+model: ROC-AUC feature importance, precision/recall/F1 across thresholds, `KFold`
+stability, and tuning `C`.
+
 ## Data
 
-The four CSVs live under `data/` so the notebooks run offline:
+The five CSVs live under `data/` so the notebooks run offline:
 
 - `car_price.csv` and `car_fuel_efficiency.csv` come from the course materials.
 - `telco.csv` is the Telco Customer Churn dataset from Kaggle.
 - `credit_card_default.csv` was converted from the UCI "Default of Credit Card
   Clients" `.xls` file; the conversion command is documented in the notebook's
   3.2 section.
+- `course_lead_scoring_2026.csv` is the pinned 2026 lead-scoring dataset used in
+  the module 4 homework.
 
 ## Notes
 
@@ -121,4 +131,4 @@ The four CSVs live under `data/` so the notebooks run offline:
   and compare ROC-AUC / PR-AUC.
 - Handle class imbalance explicitly (`class_weight='balanced'`, resampling).
 - Pick the decision threshold on validation data, then apply it once to test.
-- Move on to the course modules on evaluation, deployment, and ensembles.
+- Move on to the course modules on deployment and ensembles.
