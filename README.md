@@ -13,6 +13,7 @@ The course notebooks are kept for reference, but most of this repo is a **rewrit
 | 3 — Classification | Telco customer churn | [`03-churn-telco-customer-prediction-sklearn.ipynb`](notebooks/03-churn-telco-customer-prediction-sklearn.ipynb) | Accuracy **0.812**, ROC-AUC **0.858** |
 | 3 — Classification | Credit-card default | [`03-credit-card-default-prediction.ipynb`](notebooks/03-credit-card-default-prediction.ipynb) | Accuracy **0.818**, ROC-AUC **0.770** |
 | 4 — Evaluation | Lead scoring (homework) | [`04-lead-scoring-evaluation.ipynb`](notebooks/04-lead-scoring-evaluation.ipynb) | Validation AUC **0.732**, 5-fold std **0.007** |
+| 5 — Deployment | Lead-scoring API + container (homework) | [`05-deployment/`](05-deployment/) | Same lead scores **0.770** both via uvicorn and via Docker |
 
 The module 3 churn notebook is written as a reusable **template**: change the
 `DATA_PATH`, `TARGET`, `POSITIVE_LABEL`, and the numeric/categorical column lists,
@@ -30,6 +31,15 @@ notebooks/
   03-churn-telco-customer-prediction-sklearn.ipynb # churn, rewritten as a reusable template
   03-credit-card-default-prediction.ipynb          # template applied to credit-card default
   04-lead-scoring-evaluation.ipynb                 # module 4 homework: evaluation metrics
+
+05-deployment/                                     # module 5 homework: a separate uv project
+  pipeline.bin                                     # frozen artifact (checksum verified)
+  model.py                                         # feature order + missing-value policy
+  predict.py                                       # FastAPI: GET /health, POST /predict
+  q3_load_model.py                                 # unpickle and score in process
+  Dockerfile                                       # pinned base image + uv sync --locked
+  pyproject.toml, uv.lock, .python-version         # scikit-learn 1.7.2, Python 3.11.15
+  README.md                                        # answers and walkthrough
 
 data/
   car_price.csv                # module 2: car prices
@@ -64,6 +74,15 @@ uv sync
 
 `uv sync` installs both the runtime dependencies and the `dev` group
 (JupyterLab, ipykernel, nbconvert). Everything is pinned in `uv.lock`.
+
+`05-deployment/` is deliberately **not** part of this environment — it is its own
+`uv` project with its own lockfile, because the module 5 homework needs
+scikit-learn 1.7.2 to unpickle the frozen artifact while these notebooks run on
+1.9. Set it up separately:
+
+```bash
+cd 05-deployment && uv sync --locked
+```
 
 ## Running the notebooks
 
@@ -102,6 +121,15 @@ standard deviation is 0.007. This notebook is about evaluation rather than a new
 model: ROC-AUC feature importance, precision/recall/F1 across thresholds, `KFold`
 stability, and tuning `C`.
 
+**Deployment (module 5 homework).** The 2026 homework ships a frozen
+lead-scoring release, so the work is verification rather than training: confirm
+the artifact's SHA-256, score a lead in process (**0.533**), serve a second lead
+through `POST /predict` (**0.770**), then reproduce that exact number from inside
+the Docker image (**0.770**). The container agreeing with the host is the whole
+point — `uv sync --locked` in the `Dockerfile` resolves scikit-learn 1.7.2 from
+the same lockfile, so the match is a build guarantee instead of luck. Details and
+answers are in [`05-deployment/README.md`](05-deployment/README.md).
+
 ## Data
 
 The five CSVs live under `data/` so the notebooks run offline:
@@ -124,6 +152,13 @@ The five CSVs live under `data/` so the notebooks run offline:
   the intentional `LinAlgError` from inverting `XᵀX` by hand. The sklearn rewrite
   explains the problem and avoids it.
 - `main.py` is the default `uv init` entry point and is not used by the notebooks.
+- `05-deployment/` vendors the frozen 2026 homework release unmodified, including
+  `pipeline.bin` and its checksums. Those files are inputs, not outputs — the only
+  things added there are `q3_load_model.py`, `.dockerignore`, and the README.
+- The module 5 artifact is **not** byte-for-byte reproducible even from the
+  pinned environment (retraining matches predictions to ~5e-7 but changes the
+  pickle hash), so `05-deployment/README.md` verifies the checksum instead of
+  retraining.
 
 ## Next steps
 
@@ -131,4 +166,4 @@ The five CSVs live under `data/` so the notebooks run offline:
   and compare ROC-AUC / PR-AUC.
 - Handle class imbalance explicitly (`class_weight='balanced'`, resampling).
 - Pick the decision threshold on validation data, then apply it once to test.
-- Move on to the course modules on deployment and ensembles.
+- Move on to the course modules on ensembles.
