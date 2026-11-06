@@ -14,6 +14,8 @@ The course notebooks are kept for reference, but most of this repo is a **rewrit
 | 3 — Classification | Credit-card default | [`03-credit-card-default-prediction.ipynb`](notebooks/03-credit-card-default-prediction.ipynb) | Accuracy **0.818**, ROC-AUC **0.770** |
 | 4 — Evaluation | Lead scoring (homework) | [`04-lead-scoring-evaluation.ipynb`](notebooks/04-lead-scoring-evaluation.ipynb) | Validation AUC **0.732**, 5-fold std **0.007** |
 | 5 — Deployment | Lead-scoring API + container (homework) | [`05-deployment/`](05-deployment/) | Same lead scores **0.770** both via uvicorn and via Docker |
+| 6 — Trees | Credit risk scoring | [`06-credit-risk-decision-trees-explained.ipynb`](notebooks/06-credit-risk-decision-trees-explained.ipynb) | Test ROC-AUC **0.834**, 5-fold CV **0.841 ± 0.020** |
+| 6 — Trees | Fuel efficiency (homework) | [`06-fuel-efficiency-trees-homework.ipynb`](notebooks/06-fuel-efficiency-trees-homework.ipynb) | Test RMSE **1.656** mpg (XGBoost), **1.671** (random forest) |
 
 The module 3 churn notebook is written as a reusable **template**: change the
 `DATA_PATH`, `TARGET`, `POSITIVE_LABEL`, and the numeric/categorical column lists,
@@ -31,6 +33,8 @@ notebooks/
   03-churn-telco-customer-prediction-sklearn.ipynb # churn, rewritten as a reusable template
   03-credit-card-default-prediction.ipynb          # template applied to credit-card default
   04-lead-scoring-evaluation.ipynb                 # module 4 homework: evaluation metrics
+  06-credit-risk-decision-trees-explained.ipynb    # module 6: trees, forests, boosting
+  06-fuel-efficiency-trees-homework.ipynb          # module 6 homework: trees, forests, xgboost
 
 05-deployment/                                     # module 5 homework: a separate uv project
   pipeline.bin                                     # frozen artifact (checksum verified)
@@ -47,6 +51,8 @@ data/
   telco.csv                    # module 3: telecom churn
   credit_card_default.csv      # module 3: UCI credit-card default
   course_lead_scoring_2026.csv # module 4: lead scoring (homework)
+  credit_scoring.csv           # module 6: credit risk scoring
+  car_fuel_efficiency_2026.csv # module 6 homework: pinned 2026 fuel efficiency release
 ```
 
 Each `NN-*` prefix corresponds to a module/chapter number in the course.
@@ -121,6 +127,28 @@ standard deviation is 0.007. This notebook is about evaluation rather than a new
 model: ROC-AUC feature importance, precision/recall/F1 across thresholds, `KFold`
 stability, and tuning `C`.
 
+**Credit risk (module 6).** A handwritten if/else rule scores 0.471 AUC — worse
+than random — which motivates learning the splits. A tuned single tree reaches
+0.786 validation AUC, a random forest 0.825, and gradient boosting 0.837. The
+gradient-boosted model is refit on train + validation and scores **0.834** on the
+test set (5-fold CV **0.841 ± 0.020**). The notebook explains Gini impurity with a
+worked example, then follows the progression from one tree to bagging and
+boosting, and ends by choosing a decision threshold from the cost of false
+positives and false negatives.
+
+**Fuel efficiency trees (module 6 homework).** The same three model families on
+the pinned 2026 fuel-efficiency release (10,000 cars, target `fuel_efficiency_mpg`,
+RMSE in mpg). A depth-1 tree splits on `model_year` and explains 10% of the error
+against the 2.96 mean baseline; a 10-tree forest reaches 1.839 (the homework's
+1.837); the tuned forest (100 trees, depth 10) 1.744 on validation and **1.671** on
+test; XGBoost with `eta=0.1` **1.656**. The notebook works all six answers with the
+homework's exact split (`random_state=1`), shows why 100 trees is a tie-break over
+150 at three decimals, why depth 10 beats 15–25 at every forest size, why
+`vehicle_weight` is the important feature among the four offered, and why a large
+learning rate wins early then overfits (its validation curve bottoms at round 11
+and climbs). It also cross-checks impurity importance against permutation
+importance, which promotes `fuel_type` and explains the disagreement.
+
 **Deployment (module 5 homework).** The 2026 homework ships a frozen
 lead-scoring release, so the work is verification rather than training: confirm
 the artifact's SHA-256, score a lead in process (**0.533**), serve a second lead
@@ -132,7 +160,7 @@ answers are in [`05-deployment/README.md`](05-deployment/README.md).
 
 ## Data
 
-The five CSVs live under `data/` so the notebooks run offline:
+The seven CSVs live under `data/` so the notebooks run offline:
 
 - `car_price.csv` and `car_fuel_efficiency.csv` come from the course materials.
 - `telco.csv` is the Telco Customer Churn dataset from Kaggle.
@@ -141,6 +169,13 @@ The five CSVs live under `data/` so the notebooks run offline:
   3.2 section.
 - `course_lead_scoring_2026.csv` is the pinned 2026 lead-scoring dataset used in
   the module 4 homework.
+- `credit_scoring.csv` is the Credit Scoring dataset from Gaston Sanchez's
+  [CreditScoring](https://github.com/gastonstat/CreditScoring) project, used in
+  module 6.
+- `car_fuel_efficiency_2026.csv` is the **pinned 2026 release** of the fuel
+  efficiency dataset, used in the module 6 homework. It is a different file from
+  `car_fuel_efficiency.csv` (module 2): 10,000 rows, model years 1975–2024, and a
+  different distribution, so results are not comparable across the two.
 
 ## Notes
 
@@ -159,11 +194,16 @@ The five CSVs live under `data/` so the notebooks run offline:
   pinned environment (retraining matches predictions to ~5e-7 but changes the
   pickle hash), so `05-deployment/README.md` verifies the checksum instead of
   retraining.
+- The module 6 **lesson** notebook uses scikit-learn's
+  `GradientBoostingClassifier` instead of the course's XGBoost, so it runs without
+  an extra dependency; it includes a parameter translation table for following the
+  XGBoost version. The module 6 **homework** notebook uses XGBoost for real, so
+  `xgboost>=3.2.0` is a declared dependency (on macOS it also needs the OpenMP
+  runtime: `brew install libomp`).
 
 ## Next steps
 
-- Try tree-based models (`RandomForestClassifier`, `HistGradientBoostingClassifier`)
-  and compare ROC-AUC / PR-AUC.
+- Try LightGBM or CatBoost and compare with XGBoost on the same splits.
 - Handle class imbalance explicitly (`class_weight='balanced'`, resampling).
-- Pick the decision threshold on validation data, then apply it once to test.
-- Move on to the course modules on ensembles.
+- Calibrate the probabilities and evaluate the cost of mistakes at portfolio level.
+- Try nested cross-validation when tuning many hyperparameters at once.
